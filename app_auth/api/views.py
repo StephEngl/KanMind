@@ -19,6 +19,26 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserProfileSerializer
 
 
+class LoginView(ObtainAuthToken):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            token, created = Token.objects.get_or_create(user=user)
+            data = {
+                "token": token.key,
+                "fullname": user.fullname,
+                "email": user.email,
+                "user_id": user.id,
+            }
+        else:
+            data = serializer.errors
+        return Response(data, status=status.HTTP_200_OK)
+
+
 class RegistrationView(APIView):
     permission_classes = [AllowAny]
 
@@ -31,10 +51,10 @@ class RegistrationView(APIView):
             token, created = Token.objects.get_or_create(user=saved_account)
             data = {
                 "token": token.key,
+                "fullname": saved_account.username,
                 "email": saved_account.email,
-                "username": saved_account.username,
+                "user_id": saved_account.id,
             }
         else:
             data = serializer.errors
         return Response(data, status=status.HTTP_201_CREATED)
-        pass
