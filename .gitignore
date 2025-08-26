@@ -1,2 +1,13 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
-*env
+# Python virtual environment
+env/
+venv/
+
+# SQLite DB
+db.sqlite3
+
+# IDE/project infos
+infos.txt
+
+# __pycache__ und andere temporäre Dateien
+__pycache__/
+*.pyc
