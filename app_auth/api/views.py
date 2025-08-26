@@ -1,4 +1,4 @@
-from user_auth_app.models import UserProfile
+from app_auth.models import UserProfile
 
 from .serializers import RegistrationSerializer, UserProfileSerializer
 
