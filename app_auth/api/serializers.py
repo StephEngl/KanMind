@@ -5,14 +5,16 @@ from django.contrib.auth.models import User
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'bio', 'location', 'birth_date']
+        fields = ['id', 'fullname', 'bio', 'location', 'birth_date']
+
 
 class RegistrationSerializer(serializers.ModelSerializer):
     repeated_password = serializers.CharField(write_only=True)
+    fullname = serializers.CharField(max_length=255)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'repeated_password', 'email', 'first_name', 'last_name']
+        fields = ['id', 'fullname', 'password', 'repeated_password', 'email']
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate_email(self, value):
@@ -28,10 +30,8 @@ class RegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Passwords doesn't match."})
         
         account = User(
-            username=self.validated_data['username'],
+            username=self.validated_data['fullname'],
             email=self.validated_data.get('email', ''),
-            first_name=self.validated_data.get('first_name', ''),
-            last_name=self.validated_data.get('last_name', '')
         )
         account.set_password(pw)
         account.save()
