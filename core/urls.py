@@ -19,10 +19,9 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/registration/', include('app_auth.api.urls')),
-    path('api/login/', include('app_auth.api.urls')),
-    path('api/boards/', include('app_board.api.urls')),
-    path('api/email-check/', include('app_board.api.email_check_urls')),
-    path('api/tasks/', include('app_task.api.urls')),
+    path('api/', include('app_auth.api.urls')),
+    # path('api/boards/', include('app_board.api.urls')),
+    # path('api/email-check/', include('app_board.api.email_check_urls')),
+    # path('api/tasks/', include('app_task.api.urls')),
     path('api-auth/', include('rest_framework.urls')),
 ]   
