@@ -1,13 +1,14 @@
-from app_auth.models import UserProfile
-
+from django.contrib.auth import authenticate, get_user_model
 from .serializers import RegistrationSerializer, UserProfileSerializer
+
+from app_auth.models import UserProfile
 
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from rest_framework.authtoken.views import ObtainAuthToken
+
 
 class UserProfileList(generics.ListCreateAPIView):
     queryset = UserProfile.objects.all()
@@ -19,24 +20,35 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserProfileSerializer
 
 
-class LoginView(ObtainAuthToken):
+class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        email = request.data.get('email')
+        password = request.data.get('password')
 
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
+        if email is None or password is None:
+            return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            User = get_user_model()
+            user_obj = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Username für Authentifizierung nehmen
+        user = authenticate(request, username=user_obj.username, password=password)
+        if user is not None:
             token, created = Token.objects.get_or_create(user=user)
             data = {
                 "token": token.key,
-                "fullname": user.fullname,
+                "fullname": user.username,
                 "email": user.email,
                 "user_id": user.id,
             }
+            return Response(data, status=status.HTTP_200_OK)
         else:
-            data = serializer.errors
-        return Response(data, status=status.HTTP_200_OK)
+            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class RegistrationView(APIView):
