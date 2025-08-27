@@ -1,0 +1,75 @@
+from django.contrib.auth.models import User
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+
+from app_board.models import Board
+from .serializers import BoardSerializer
+
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+
+
+class BoardListCreateView(generics.ListCreateAPIView):
+    queryset = Board.objects.all()
+    serializer_class = BoardSerializer
+
+
+class BoardRetrieveUpdateDestroyView(APIView):
+    def get_object(self, pk):
+        try:
+            return Board.objects.get(pk=pk)
+        except Board.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        board = self.get_object(pk)
+        if board is not None:
+            serializer = BoardSerializer(board)
+            return Response(serializer.data)
+        return Response(status=404)
+
+    def put(self, request, pk):
+        board = self.get_object(pk)
+        if board is not None:
+            serializer = BoardSerializer(board, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=400)
+        return Response(status=404)
+
+    def delete(self, request, pk):
+        board = self.get_object(pk)
+        if board is not None:
+            board.delete()
+            return Response(status=204)
+        return Response(status=404)
+
+
+class EmailCheckView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def validate_email(self, email):
+        try:
+            validate_email(email)
+            return True
+        except ValidationError:
+            return Response({'error': 'E-mail not valid.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        email = request.query_params.get('email')
+        if not email:
+            return Response({'error': 'No e-mail-address found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+            data = {
+                "id": user.id,
+                "email": user.email,
+                "fullname": user.username,
+                }
+            return Response(data, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'E-mail-address does not exist.'}, status=status.HTTP_404_NOT_FOUND)
