@@ -1,6 +1,8 @@
+# Third-Party imports
 from django.db import models
 from django.contrib.auth.models import User
 
+# Local imports
 from app_board.models import Board
 
 STATUS_CHOICES = [
