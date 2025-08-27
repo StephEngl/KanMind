@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 from app_board.models import Board
 from .permissions import IsBoardMemberOrOwner
@@ -13,9 +14,16 @@ from rest_framework.permissions import IsAuthenticated
 
 
 class BoardListCreateView(generics.ListCreateAPIView):
-    queryset = Board.objects.all()
-    serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        return Board.objects.filter(Q(owner=user) | Q(members=user)).distinct()
+
+    def get(self, request):
+        boards = self.get_queryset()
+        serializer = BoardSerializer(boards, many=True)
+        return Response(serializer.data)
 
     def post(self, request):
         serializer = BoardSerializer(data=request.data)
