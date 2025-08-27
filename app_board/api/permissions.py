@@ -1,6 +1,6 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
-class IsMemberOrOwner(BasePermission):
+class IsBoardMemberOrOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
         # Allow full access if the user is the owner
         if obj.owner == request.user:
