@@ -1,23 +1,12 @@
-from django.contrib.auth import authenticate, get_user_model
-from .serializers import RegistrationSerializer, UserProfileSerializer
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from .serializers import RegistrationSerializer
 
-from app_auth.models import UserProfile
-
-from rest_framework import generics, status
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-
-
-class UserProfileList(generics.ListCreateAPIView):
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
-
-
-class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
 
 
 class LoginView(APIView):
@@ -31,12 +20,10 @@ class LoginView(APIView):
             return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            User = get_user_model()
             user_obj = User.objects.get(email=email)
-        except User.DoesNotExist:
+        except user_obj.DoesNotExist:
             return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Username für Authentifizierung nehmen
         user = authenticate(request, username=user_obj.username, password=password)
         if user is not None:
             token, created = Token.objects.get_or_create(user=user)
