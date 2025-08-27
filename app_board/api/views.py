@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from app_board.models import Board
 from .permissions import IsBoardMemberOrOwner
-from .serializers import BoardSerializer
+from .serializers import BoardSerializer, BoardDetailSerializer
 
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -51,14 +51,18 @@ class BoardRetrieveUpdateDestroyView(APIView):
     def get(self, request, pk):
         board = self.get_object(pk)
         if board is not None:
-            serializer = BoardSerializer(board)
+            user = request.user
+            if user not in board.members.all() and user != board.owner:
+                return Response({'error': 'You do not have permission to view this board. You have to be a member or the owner.'}, status=status.HTTP_403_FORBIDDEN)
+
+            serializer = BoardDetailSerializer(board)
             return Response(serializer.data)
         return Response(status=status.HTTP_404_NOT_FOUND)
 
     def put(self, request, pk):
         board = self.get_object(pk)
         if board is not None:
-            serializer = BoardSerializer(board, data=request.data)
+            serializer = BoardDetailSerializer(board, data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
