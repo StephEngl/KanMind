@@ -3,6 +3,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
 from app_board.models import Board
+from .permissions import IsBoardMemberOrOwner
 from .serializers import BoardSerializer
 
 from rest_framework import generics, status
@@ -14,6 +15,22 @@ from rest_framework.permissions import IsAuthenticated
 class BoardListCreateView(generics.ListCreateAPIView):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = BoardSerializer(data=request.data)
+        if serializer.is_valid():
+            board = serializer.save(owner=request.user)
+            members = serializer.validated_data.get('members', [])
+            board.members.set(members)
+
+            if request.user not in members:
+                board.members.add(request.user)
+
+            board.save()
+            output_serializer = BoardSerializer(board)
+            return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class BoardRetrieveUpdateDestroyView(APIView):
@@ -28,7 +45,7 @@ class BoardRetrieveUpdateDestroyView(APIView):
         if board is not None:
             serializer = BoardSerializer(board)
             return Response(serializer.data)
-        return Response(status=404)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     def put(self, request, pk):
         board = self.get_object(pk)
@@ -37,15 +54,15 @@ class BoardRetrieveUpdateDestroyView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors, status=400)
-        return Response(status=404)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request, pk):
         board = self.get_object(pk)
         if board is not None:
             board.delete()
-            return Response(status=204)
-        return Response(status=404)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 class EmailCheckView(APIView):
