@@ -9,7 +9,8 @@ from rest_framework import serializers
 class BoardSerializer(serializers.ModelSerializer):
     members = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=User.objects.all()
+        queryset=User.objects.all(),
+        write_only=True
     )
     member_count = serializers.SerializerMethodField()
     ticket_count = serializers.SerializerMethodField()
@@ -22,7 +23,7 @@ class BoardSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'title',
-            'members',
+            "members",
             'member_count',
             'ticket_count',
             'tasks_to_do_count',
