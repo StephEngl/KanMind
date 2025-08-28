@@ -4,77 +4,98 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from app_board.models import Board
-from .permissions import IsBoardMemberOrOwner
+from .permissions import IsBoardMemberOrOwner, IsBoardOwner, IsMemberOrOwnerOfAnyBoard
 from .serializers import BoardSerializer, BoardDetailSerializer
 
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import NotFound
 
 
-class BoardListCreateView(generics.ListCreateAPIView):
+class BoardViewSet(viewsets.ModelViewSet):
+    """
+    Handles listing, creating, retrieving, updating, and deleting Boards.
+    Permissions vary per action.
+    """
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
+        """Return boards where the user is owner or member."""
         user = self.request.user
         return Board.objects.filter(Q(owner=user) | Q(members=user)).distinct()
+    
+    def get_object(self):
+        """
+        For 'destroy', allow looking up any Board so that
+        403 Forbidden can be raised if user is not owner.
+        For other actions, restrict queryset.
+        """
+        if self.action in ['retrieve', 'update', 'partial_update','destroy']:
+            queryset = Board.objects.all()
+        else:
+            queryset = self.get_queryset()
 
-    def get(self, request):
-        boards = self.get_queryset()
-        serializer = BoardSerializer(boards, many=True)
+        try:
+            obj = queryset.get(pk=self.kwargs.get(self.lookup_field))
+        except Board.DoesNotExist:
+            raise NotFound("Board not found")
+
+        self.check_object_permissions(self.request, obj)
+
+        return obj
+
+    def get_serializer_class(self):
+        """Choose serializer class based on action."""
+        if self.action in ['retrieve', 'update', 'partial_update']:
+            return BoardDetailSerializer
+        return BoardSerializer
+
+    def perform_create(self, serializer):
+        """
+        Save new board with request user as owner.
+        Ensure owner is a member as well, if wished.
+        """
+        board = serializer.save(owner=self.request.user)
+        members = serializer.validated_data.get("members", [])
+        board.members.set(members)
+        board.save()
+
+    def update(self, request, *args, **kwargs):
+        """
+        Restrict update to only 'title' and 'members'.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        # Only accept title and members in updated data
+        allowed_fields = {'title', 'members'}
+        filtered_data = {key: value for key, value in request.data.items() if key in allowed_fields}
+
+        serializer = self.get_serializer(instance, data=filtered_data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
         return Response(serializer.data)
 
-    def post(self, request):
-        serializer = BoardSerializer(data=request.data)
-        if serializer.is_valid():
-            board = serializer.save(owner=request.user)
-            members = serializer.validated_data.get('members', [])
-            board.members.set(members)
+    def get_permissions(self):
+        """
+        Return appropriate permissions based on action.
+        - create: authenticated user
+        - list: authenticated + member/owner of any board
+        - retrieve, update, partial_update: member or owner of that board
+        - destroy: only board owner
+        """
+        permissions_list = super().get_permissions()
+        if self.action == "list":
+            permissions_list.append(IsMemberOrOwnerOfAnyBoard())
+        elif self.action in ["retrieve", "update", "partial_update"]:
+            permissions_list.append(IsBoardMemberOrOwner())
+        elif self.action == "destroy":
+            permissions_list.append(IsBoardOwner())
 
-            if request.user not in members:
-                board.members.add(request.user)
-
-            board.save()
-            output_serializer = BoardSerializer(board)
-            return Response(output_serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class BoardRetrieveUpdateDestroyView(APIView):
-    def get_object(self, pk):
-        try:
-            return Board.objects.get(pk=pk)
-        except Board.DoesNotExist:
-            return None
-
-    def get(self, request, pk):
-        board = self.get_object(pk)
-        if board is not None:
-            user = request.user
-            if user not in board.members.all() and user != board.owner:
-                return Response({'error': 'You do not have permission to view this board. You have to be a member or the owner.'}, status=status.HTTP_403_FORBIDDEN)
-
-            serializer = BoardDetailSerializer(board)
-            return Response(serializer.data)
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    def put(self, request, pk):
-        board = self.get_object(pk)
-        if board is not None:
-            serializer = BoardDetailSerializer(board, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    def delete(self, request, pk):
-        board = self.get_object(pk)
-        if board is not None:
-            board.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        return permissions_list
 
 
 class EmailCheckView(APIView):
