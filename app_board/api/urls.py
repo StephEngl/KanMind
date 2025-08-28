@@ -1,7 +1,11 @@
-from django.urls import path
-from .views import BoardListCreateView, BoardRetrieveUpdateDestroyView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+
+from .views import BoardViewSet
+
+router = DefaultRouter()
+router.register(r'', BoardViewSet, basename='board')
 
 urlpatterns = [
-    path('', BoardListCreateView.as_view(), name='board-list-create'),
-    path('<int:pk>/', BoardRetrieveUpdateDestroyView.as_view(), name='board-retrieve-update-destroy'),
+    path('', include(router.urls)),
 ]
