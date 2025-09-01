@@ -17,7 +17,7 @@ from rest_framework import serializers
 # Serializer for user info reuse
 from app_auth.api.serializers import UserInfoSerializer
 # Serializer for task info reuse
-from app_task.api.serializers import TaskSerializer
+from app_task.api.serializers import BoardTaskSerializer
 # Board model definition
 from app_board.models import Board
 # Task model definition
@@ -88,11 +88,11 @@ class BoardDetailSerializer(BoardSerializer):
     
     Overrides: 
         - members: Expanded member info (UserInfoSerializer, read-only).
-        - tasks: Nested task details (TaskSerializer, read-only).
+        - tasks: Nested task details (BoardTaskSerializer, read-only).
     """
     owner_id = serializers.IntegerField(source='owner.id', read_only=True)
     members = UserInfoSerializer(many=True, read_only=True)
-    tasks = TaskSerializer(many=True, read_only=True)
+    tasks = BoardTaskSerializer(many=True, read_only=True)
 
     class Meta(BoardSerializer.Meta):
         fields = ['id', 'title', 'owner_id', 'members'] + ['tasks']
