@@ -4,39 +4,110 @@ from rest_framework import serializers
 
 from app_auth.api.serializers import UserInfoSerializer
 from app_board.models import Board
-from app_task.models import Task
+from app_task.models import Task, Comment
 
 
 class TaskSerializer(serializers.ModelSerializer):
     """
-    Serializer for task data representation and validation.
+    Serializer for task representation and validation.
 
-    Fields:
-        - assignee (UserInfoSerializer, read-only): Information about the user assigned to the task.
-        - reviewer (UserInfoSerializer, read-only): Information about the user reviewing the task.
-        - comments_count (int, read-only): Number of comments on the task.
+    Handles:
+    - Writing assignee_id and reviewer_id as user PKs on create/update.
+    - Reading nested detailed info for assignee and reviewer in API responses.
+    - Read-only comments count.
+
+    Validates:
+    - That assignee and reviewer (if given) are members of the associated board.
+    - That a board must always be specified and exist.
     """
+
+    # Input fields for IDs of assignee and reviewer with validation against User table
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        source='assignee',
+        queryset=User.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    reviewer_id = serializers.PrimaryKeyRelatedField(
+        source='reviewer',
+        queryset=User.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
+    # Output fields for nested user info
+    board = serializers.PrimaryKeyRelatedField(queryset=Board.objects.all())
     assignee = UserInfoSerializer(read_only=True)
     reviewer = UserInfoSerializer(read_only=True)
-    comments_count = serializers.IntegerField(read_only=True)
+    comments_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Task
-        fields = ['id', 'title', 'description', 'status', 'priority',
-                'assignee', 'reviewer', 'due_date', 'comments_count']
+        fields = ['id', 'board', 'title', 'description', 'status', 'priority',
+                'assignee_id', 'reviewer_id', 'assignee', 'reviewer', 'due_date', 
+                'comments_count']
+
+    def get_comments_count(self, obj):
+        """
+        Returns the count of comments related to this task.
+        """
+        return obj.comments.count()
     
+    def validate(self, attrs):
+        """
+        Validates that assignee and reviewer (if provided) are members of the board.
+        Also ensures the board is specified and exists.
 
-class TaskDetailSerializer(serializers.ModelSerializer):
+        Args:
+            attrs (dict): Validated field data before final save.
+
+        Returns:
+            dict: The validated attrs.
+
+        Raises:
+            serializers.ValidationError: If validations fail.
+        """
+        # Get the board instance either from input (create) or existing instance (update)
+        board = attrs.get('board') or getattr(self.instance, 'board', None)
+        assignee = attrs.get('assignee')
+        reviewer = attrs.get('reviewer')
+        
+        if assignee and not board.members.filter(id=assignee.id).exists():
+            raise serializers.ValidationError({
+                'assignee_id': 'Assignee must be a member of the board.'
+            })
+        if reviewer and not board.members.filter(id=reviewer.id).exists():
+            raise serializers.ValidationError({
+                'reviewer_id': 'Reviewer must be a member of the board.'
+            })
+
+        return attrs
+    
+    def to_representation(self, instance):
+        """
+        Passe die Repräsentation an, um assignee und reviewer als leere Objekte ohne null zu zeigen, wenn sie nicht gesetzt sind.
+        """
+        data = super().to_representation(instance)
+        if data.get('assignee') is None:
+            data['assignee'] = []
+        if data.get('reviewer') is None:
+            data['reviewer'] = []
+        return data
+
+
+class BoardTaskSerializer(TaskSerializer):
+    class Meta(TaskSerializer.Meta):
+        fields = [
+            'id', 'title', 'description', 'status', 'priority',
+            'assignee_id', 'reviewer_id', 'assignee', 'reviewer',
+            'due_date', 'comments_count'
+        ]
+
+
+class CommentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Task
-        fields = '__all__'
-
-        def update(self, instance, validated_data):
-            assignee_data = validated_data.pop('assignee', None)
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-            if assignee_data:
-                assignee = User.objects.get(**assignee_data)
-                instance.assignee = assignee
-            instance.save()
-            return instance
+        model = Comment
+        fields = ['id', 'created_at', 'author', 'content']
+        read_only_fields = ['id', 'created_at', 'author']
