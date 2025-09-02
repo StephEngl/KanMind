@@ -1,65 +1,100 @@
+# from xml.etree.ElementTree import Comment
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
-from app_task.models import Task
-# from .permissions import IsBoardMemberOrOwner
-from .serializers import TaskSerializer, TaskDetailSerializer
+from app_task.models import Task, Comment
+from app_board.models import Board
+from .permissions import IsBoardMember, IsBoardOwnerOrTaskCreator, IsCommentCreator
+from .serializers import TaskSerializer, CommentSerializer
 
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-class TaskListCreateView(generics.ListCreateAPIView):
+
+class TaskViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet to handle CRUD operations for tasks.
+
+    - Checks if Board exists before attempting to create a Task.
+    - Applies permission that user must be board member for creation and other actions.
+    """
     permission_classes = [IsAuthenticated]
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+
+    def get_permissions(self):
+        """
+        Return appropriate permissions based on current action.
+        Enforces IsBoardMember for create, list, retrieve, partial_update.
+        Enforces IsCommentCreator for destroy.
+        """
+        permissions_list = super().get_permissions()
+        if self.action in ['create', 'list']:
+            permissions_list.append(IsBoardMember())
+        elif self.action in ["retrieve", "partial_update"]:
+            permissions_list.append(IsBoardMember())
+        elif self.action == "destroy":
+            permissions_list.append(IsBoardOwnerOrTaskCreator())
+
+        return permissions_list
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class AssignedTaskListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TaskSerializer
 
     def get_queryset(self):
         user = self.request.user
-        return Task.objects.filter(Q(assignee=user) | Q(reviewer=user)).distinct()
-
-    def get(self, request):
-        tasks = self.get_queryset()
-        serializer = TaskSerializer(tasks, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        serializer = TaskSerializer(data=request.data)
-        if serializer.is_valid():
-            task = serializer.save()
-            return Response(TaskSerializer(task).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Task.objects.filter(assignee=user)
 
 
-class TaskDetailView(APIView):
+class ReviewingTaskListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = TaskSerializer
 
-    def get_object(self, pk):
-        try:
-            return Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
-            return None
+    def get_queryset(self):
+        user = self.request.user
+        tasks = Task.objects.filter(reviewer=user)
+        return tasks
 
-    def get(self, request, pk):
-        task = self.get_object(pk)
-        if task is not None:
-            serializer = TaskSerializer(task)
-            return Response(serializer.data)
-        return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def put(self, request, pk):
-        task = self.get_object(pk)
-        if task is not None:
-            serializer = TaskSerializer(task, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_404_NOT_FOUND)
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'delete']
 
-    def delete(self, request, pk):
-        task = self.get_object(pk)
-        if task is not None:
-            task.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    def get_queryset(self):
+        task_id = self.kwargs['task_pk']
+        return Comment.objects.filter(task_id=task_id)
+    
+    def get_permissions(self):
+        permissions_list = super().get_permissions()
+        if self.action in ['list', 'create']:
+            permissions_list.append(IsBoardMember())
+        if self.action == "destroy":
+            permissions_list.append(IsCommentCreator())
+        return permissions_list
+
+
+class CommentListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        task_id = self.kwargs['pk']
+        return Comment.objects.filter(task_id=task_id)
+
+
+class CommentDeleteView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated, IsCommentCreator]
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        task_id = self.kwargs['pk-comment']
+        return Comment.objects.filter(task_id=task_id)
