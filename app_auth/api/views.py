@@ -1,15 +1,58 @@
+"""
+Module for user authentication and registration API views and serializers.
+
+This module provides:
+- LoginView: Authenticates users and issues authentication tokens.
+- RegistrationView: Registers new users with validation and issues tokens.
+- UserInfoSerializer: Serializes basic user information including full name.
+- RegistrationSerializer: Handles user registration data, password confirmation, and creation.
+
+Example usage:
+    from django.urls import path
+    from .views import LoginView, RegistrationView
+
+    urlpatterns = [
+        path('login/', LoginView.as_view(), name='login'),
+        path('registration/', RegistrationView.as_view(), name='registration'),
+    ]
+"""
+
+# 1. Standard library
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from .serializers import RegistrationSerializer, UserInfoSerializer
 
+# 2. Third-party
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
+# 3. Local imports
+from .serializers import RegistrationSerializer, UserInfoSerializer
+
+
 
 class LoginView(APIView):
+    """
+    Summary:
+        Authenticates user and returns a token along with user details.
+
+    POST:
+        - Authenticates user using email and password.
+        - Returns authentication token and user info on success.
+        - Returns a 400 response if email or password is missing.
+        - Returns a 401 response if credentials are invalid.
+
+    Permissions:
+        - AllowAny: No authentication required; open for any user.
+
+    Details:
+        - Uses Django's 'authenticate' for login verification.
+        - Retrieves user by email, checks password via authentication.
+        - Responds with serialized user info and token if successful.
+        - Error details are returned in a structured format.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -38,6 +81,24 @@ class LoginView(APIView):
 
 
 class RegistrationView(APIView):
+    """
+    Summary:
+        Registers a new user and returns an authentication token.
+
+    POST:
+        - Accepts user data and creates a new user if valid.
+        - Returns token and user info on successful registration.
+        - Returns serializer errors if validation fails.
+
+    Permissions:
+        - AllowAny: No authentication required; open for any user.
+
+    Details:
+        - Uses RegistrationSerializer for user creation and validation.
+        - Builds response based on serializer's validity.
+        - Returns structured data with token and serialized user info.
+        - Error messages are returned in a structured format.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
