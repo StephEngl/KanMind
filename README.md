@@ -82,19 +82,18 @@ Follow these steps to set up and run the project locally.
 - `GET /api/boards/` – List all boards
 - `POST /api/boards/` – Create a new board
 - `GET /api/boards/<id>/` – Get board details
-- `PUT /api/boards/<id>/` – Update board
+- `PATCH /api/boards/<id>/` – Update board
 - `DELETE /api/boards/<id>/` – Delete board
-- `GET /api/boards/<id>/members/` – List board members
-- `POST /api/boards/<id>/invite/` – Invite user to board
 
 #### 📋 Tasks (`app_task`)
-- `GET /api/tasks/` – List all tasks
+- `GET /api/tasks/assigned-to-me/` – List all tasks, where user is assignee
+- `GET /api/tasks/reviewing/` – List all tasks, where user is reviewer
 - `POST /api/tasks/` – Create a new task
-- `GET /api/tasks/<id>/` – Get task details
-- `PUT /api/tasks/<id>/` – Update task
+- `PATch /api/tasks/<id>/` – Update task
 - `DELETE /api/tasks/<id>/` – Delete task
 - `GET /api/tasks/<id>/comments/` – List comments for a task
 - `POST /api/tasks/<id>/comments/` – Add comment to a task
+- `DELETE /api/tasks/<id>/comments/<id>` – Delete comment from a task
 
 ### 📁 Project Structure
 
