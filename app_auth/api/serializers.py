@@ -34,7 +34,6 @@ class RegistrationSerializer(serializers.ModelSerializer):
         if pw != repeated_pw:
             raise serializers.ValidationError({"password": "Passwords doesn't match."})
 
-        print("FULLNAME:", self.validated_data.get('fullname'))
         fullname = self.validated_data['fullname']
         parts = fullname.split(' ', 1)
         first_name = parts[0]
