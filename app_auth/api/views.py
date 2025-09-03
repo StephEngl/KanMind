@@ -56,6 +56,13 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Handles user login by validating email and password and returning authentication token.
+
+        Args: request (Request): DRF Request object with POST data containing 'email' and 'password'.
+
+        Returns: Response: DRF Response with token and user data on success, or error details on failure.
+        """
         email = request.data.get('email')
         password = request.data.get('password')
 
@@ -102,6 +109,14 @@ class RegistrationView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Handles registration of a new user with validation and token issuance.
+
+        Args: request (Request): DRF Request object containing registration data.
+
+        Returns: Response: DRF Response including authentication token and user data when successful,
+            or validation errors.
+        """
         serializer = RegistrationSerializer(data=request.data)
 
         if serializer.is_valid():

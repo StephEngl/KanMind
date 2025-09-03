@@ -42,8 +42,14 @@ class UserInfoSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'email', 'fullname']
 
-    # Returns full name as "first_name last_name", trimmed of any leading/trailing spaces.
     def get_fullname(self, obj):
+        """
+        Returns the full name, combining first and last names.
+
+        Args: obj (User): User instance.
+
+        Returns: str: Full name in "first_name last_name" format, trimmed.
+        """
         return f"{obj.first_name} {obj.last_name}".strip()
 
 
@@ -76,11 +82,27 @@ class RegistrationSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate_email(self, value):
+            """
+        Validates that the email is unique in the system.
+
+        Args: value (str): Email value to validate.
+
+        Raises: serializers.ValidationError: If email is already in use.
+
+        Returns: str: Validated email.
+        """
             if User.objects.filter(email=value).exists():
                 raise serializers.ValidationError({"email": "Email is already in use."})
             return value
 
     def save(self):
+        """
+        Creates and saves a new User instance after validating passwords and splitting the full name.
+
+        Raises: serializers.ValidationError: If password and repeated password do not match.
+
+        Returns: User: Newly created user instance.
+        """
         pw = self.validated_data['password']
         repeated_pw = self.validated_data['repeated_password']
 
