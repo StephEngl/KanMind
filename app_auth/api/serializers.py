@@ -10,7 +10,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'fullname']
 
     def get_fullname(self, obj):
-        return obj.username
+        return f"{obj.first_name} {obj.last_name}".strip()
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -33,10 +33,18 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
         if pw != repeated_pw:
             raise serializers.ValidationError({"password": "Passwords doesn't match."})
+
+        print("FULLNAME:", self.validated_data.get('fullname'))
+        fullname = self.validated_data['fullname']
+        parts = fullname.split(' ', 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ''
         
         account = User(
-            username=self.validated_data['fullname'],
+            username=self.validated_data['email'],
             email=self.validated_data.get('email', ''),
+            first_name = first_name,
+            last_name = last_name
         )
         account.set_password(pw)
         account.save()
