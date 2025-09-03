@@ -1,13 +1,26 @@
+"""
+Custom permission classes for task and comment access control in board context.
+
+Permissions:
+- IsBoardMemberForTask: Allows access only for members of related board, especially on task creation.
+- IsBoardMemberForComment: Allows access only for members of the board related to a comment's task.
+- IsBoardOwnerOrTaskCreator: Allows modifications only by board owner or task creator.
+- IsCommentCreator: Allows comment deletion only by the comment's creator.
+"""
+
+# 2. Third-party
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
+# 3. Local imports
 from app_board.models import Board
 
 
 class IsBoardMemberForTask(BasePermission):
     """
-    Allow access only to members of the board.
-    """
+    Permission: Allows action only if user is a member of the specified board.
 
+    Checks board existence on create.
+    """
     message = "You must be a member of this board."
 
     def has_permission(self, request, view):
@@ -29,6 +42,9 @@ class IsBoardMemberForTask(BasePermission):
 
 
 class IsBoardMemberForComment(BasePermission):
+    """
+    Permission: Allows access only for members of the board associated with the comment's task.
+    """
     message = "You must be a member of this board."
     
     def has_permission(self, request, view):
@@ -42,8 +58,7 @@ class IsBoardMemberForComment(BasePermission):
 
 class IsBoardOwnerOrTaskCreator(BasePermission):
     """
-    Custom permission allowing access only if user is the owner of the board
-    related to the task or creator of the task.
+    Permission: Allows access only to board owner or creator of related task.
     """
     message = "You must be the board owner or the creator of this task."
 
@@ -56,7 +71,7 @@ class IsBoardOwnerOrTaskCreator(BasePermission):
 
 class IsCommentCreator(BasePermission):
     """
-    Custom permission to only allow the creator of a comment to delete it.
+    Permission: Allows deletion only for creator of a comment.
     """
     message = "You must be the creator of this comment."
 

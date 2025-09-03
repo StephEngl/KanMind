@@ -1,7 +1,21 @@
+"""
+Serializers module for task management API.
+
+Includes serializers for Tasks and Comments with nested user info and validation logic.
+
+Features:
+- TaskSerializer: Handles task creation, update, and validation of board membership.
+- BoardTaskSerializer: Simplified task serializer excluding board relation.
+- CommentSerializer: Handles comment representation with author info.
+"""
+
+# 1. Standard library
 from django.contrib.auth.models import User
 
+# 2. Third-party
 from rest_framework import serializers
 
+# 3. Local imports
 from app_auth.api.serializers import UserInfoSerializer
 from app_board.models import Board
 from app_task.models import Task, Comment
@@ -21,7 +35,6 @@ class TaskSerializer(serializers.ModelSerializer):
     - That a board must always be specified and exist.
     """
 
-    # Input fields for IDs of assignee and reviewer with validation against User table
     assignee_id = serializers.PrimaryKeyRelatedField(
         source='assignee',
         queryset=User.objects.all(),
@@ -37,7 +50,6 @@ class TaskSerializer(serializers.ModelSerializer):
         allow_null=True
     )
 
-    # Output fields for nested user info
     board = serializers.PrimaryKeyRelatedField(queryset=Board.objects.all())
     assignee = UserInfoSerializer(read_only=True)
     reviewer = UserInfoSerializer(read_only=True)
@@ -64,12 +76,11 @@ class TaskSerializer(serializers.ModelSerializer):
             attrs (dict): Validated field data before final save.
 
         Returns:
-            dict: The validated attrs.
+            dict: The validated attributes.
 
         Raises:
-            serializers.ValidationError: If validations fail.
+            serializers.ValidationError: If the validations fail.
         """
-        # Get the board instance either from input (create) or existing instance (update)
         board = attrs.get('board') or getattr(self.instance, 'board', None)
         assignee = attrs.get('assignee')
         reviewer = attrs.get('reviewer')
@@ -87,6 +98,24 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class BoardTaskSerializer(TaskSerializer):
+    """
+    Serializer variant for Task model tailored for board-level views.
+
+    Inherits all validation and field handling from TaskSerializer.
+
+    Fields:
+        - id: Task identifier.
+        - title: Title of the task.
+        - description: Detailed description.
+        - status: Current task status.
+        - priority: Task priority level.
+        - assignee_id: ID of the user assigned to the task (write-only).
+        - reviewer_id: ID of the user reviewing the task (write-only).
+        - assignee: Nested user info for assignee (read-only).
+        - reviewer: Nested user info for reviewer (read-only).
+        - due_date: Deadline date.
+        - comments_count: Number of comments associated with the task (read-only).
+    """
     class Meta(TaskSerializer.Meta):
         fields = [
             'id', 'title', 'description', 'status', 'priority',
@@ -96,6 +125,20 @@ class BoardTaskSerializer(TaskSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Comment model instances.
+
+    Provides serialized fields for displaying comment metadata and content.
+
+    Fields:
+        - id: Unique identifier of the comment (read-only).
+        - created_at: Timestamp when the comment was created (read-only).
+        - author: Full name of the comment's author, dynamically constructed (read-only).
+        - content: The text content of the comment.
+
+    Methods:
+        - get_author(obj): Returns the full name of the author concatenated from first and last names.
+    """
     author = serializers.SerializerMethodField()
 
     class Meta:

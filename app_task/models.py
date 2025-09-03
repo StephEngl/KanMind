@@ -1,9 +1,18 @@
-# Third-Party imports
+"""
+Module defining Task and Comment models for board-related task management.
+
+Contains:
+- Task: Represents tasks on a board with status, priority, and user relations.
+- Comment: Represents comments on tasks with author and timestamps.
+"""
+
+# 1. Standard library
 from django.db import models
 from django.contrib.auth.models import User
 
-# Local imports
+# 3. Local imports
 from app_board.models import Board
+
 
 STATUS_CHOICES = [
     ('to-do', 'To Do'),
@@ -19,6 +28,25 @@ PRIORITY_CHOICES = [
 ]
 
 class Task(models.Model):
+    """
+    Model representing a task within a board.
+
+    Attributes:
+        board (ForeignKey): Related board instance.
+        title (CharField): Title of the task.
+        description (TextField): Optional, detailed description.
+        status (CharField): Task status, limited to STATUS_CHOICES.
+        priority (CharField): Task priority, limited to PRIORITY_CHOICES.
+        assignee (ForeignKey): User assigned to work on task, nullable.
+        reviewer (ForeignKey): User reviewing the task, nullable.
+        due_date (DateField): Optional deadline.
+        created_by (ForeignKey): User who created the task, nullable.
+        created_at (DateTimeField): Timestamp of creation.
+        updated_at (DateTimeField): Timestamp of last update.
+
+    Methods:
+        __str__: Returns task title as string representation.
+    """
     board = models.ForeignKey(Board, related_name='tasks', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
@@ -36,6 +64,21 @@ class Task(models.Model):
 
 
 class Comment(models.Model):
+    """
+    Model representing a comment posted on a task.
+
+    Attributes:
+        task (ForeignKey): Related task instance.
+        author (ForeignKey): User who authored this comment.
+        content (TextField): The comment text.
+        created_at (DateTimeField): Timestamp of comment creation.
+
+    Meta:
+        ordering: Returns comments in chronological order by creation date.
+
+    Methods:
+        __str__: Returns string representation identifying author and task.
+    """
     task = models.ForeignKey(Task, related_name='comments', on_delete=models.CASCADE)
     author = models.ForeignKey(User, related_name='comments', on_delete=models.CASCADE)
     content = models.TextField()
