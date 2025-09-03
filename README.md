@@ -19,7 +19,7 @@ Follow these steps to set up and run the project locally.
 
 1. **Clone the repository**
     ```sh
-    git clone <your-repo-url>
+    git clone https://github.com/StephEngl/KanMind.git
     cd KanMind
     ```
 
