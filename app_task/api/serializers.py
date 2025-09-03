@@ -84,17 +84,6 @@ class TaskSerializer(serializers.ModelSerializer):
             })
 
         return attrs
-    
-    def to_representation(self, instance):
-        """
-        Passe die Repräsentation an, um assignee und reviewer als leere Objekte ohne null zu zeigen, wenn sie nicht gesetzt sind.
-        """
-        data = super().to_representation(instance)
-        if data.get('assignee') is None:
-            data['assignee'] = []
-        if data.get('reviewer') is None:
-            data['reviewer'] = []
-        return data
 
 
 class BoardTaskSerializer(TaskSerializer):
@@ -107,7 +96,12 @@ class BoardTaskSerializer(TaskSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+
     class Meta:
         model = Comment
         fields = ['id', 'created_at', 'author', 'content']
         read_only_fields = ['id', 'created_at', 'author']
+
+    def get_author(self, obj):
+        return f"{obj.author.first_name} {obj.author.last_name}".strip()
