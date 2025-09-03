@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from .serializers import RegistrationSerializer
+from .serializers import RegistrationSerializer, UserInfoSerializer
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -27,11 +27,10 @@ class LoginView(APIView):
         user = authenticate(request, username=user_obj.username, password=password)
         if user is not None:
             token, created = Token.objects.get_or_create(user=user)
+            serializer = UserInfoSerializer(user)
             data = {
                 "token": token.key,
-                "fullname": user.username,
-                "email": user.email,
-                "user_id": user.id,
+                **serializer.data
             }
             return Response(data, status=status.HTTP_200_OK)
         else:
@@ -42,18 +41,16 @@ class RegistrationView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer_class = RegistrationSerializer
-        serializer = serializer_class(data=request.data)
+        serializer = RegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
             saved_account = serializer.save()
             token, created = Token.objects.get_or_create(user=saved_account)
+            user_serializer = UserInfoSerializer(saved_account)
             data = {
                 "token": token.key,
-                "fullname": saved_account.username,
-                "email": saved_account.email,
-                "user_id": saved_account.id,
+                **user_serializer.data
             }
         else:
             data = serializer.errors
-        return Response(data, status=status.HTTP_201_CREATED)
+        return Response(data)
