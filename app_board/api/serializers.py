@@ -20,9 +20,6 @@ from app_auth.api.serializers import UserInfoSerializer
 from app_task.api.serializers import BoardTaskSerializer
 # Board model definition
 from app_board.models import Board
-# Task model definition
-from app_task.models import Task
-
 
 
 class BoardSerializer(serializers.ModelSerializer):
