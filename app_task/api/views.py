@@ -1,16 +1,8 @@
-# from xml.etree.ElementTree import Comment
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from django.db.models import Q
-
 from app_task.models import Task, Comment
-from app_board.models import Board
-from .permissions import IsBoardMember, IsBoardOwnerOrTaskCreator, IsCommentCreator
+from .permissions import IsBoardMemberForTask, IsBoardOwnerOrTaskCreator, IsCommentCreator, IsBoardMemberForComment
 from .serializers import TaskSerializer, CommentSerializer
 
-from rest_framework import generics, status, viewsets
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAuthenticated
 
 
@@ -21,21 +13,20 @@ class TaskViewSet(viewsets.ModelViewSet):
     - Checks if Board exists before attempting to create a Task.
     - Applies permission that user must be board member for creation and other actions.
     """
-    permission_classes = [IsAuthenticated]
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
+    # http_method_names = ['post', 'partial_update', 'delete']
 
     def get_permissions(self):
         """
         Return appropriate permissions based on current action.
-        Enforces IsBoardMember for create, list, retrieve, partial_update.
+        Enforces IsBoardMember of the task's board for create, list, retrieve, partial_update.
         Enforces IsCommentCreator for destroy.
         """
         permissions_list = super().get_permissions()
-        if self.action in ['create', 'list']:
-            permissions_list.append(IsBoardMember())
-        elif self.action in ["retrieve", "partial_update"]:
-            permissions_list.append(IsBoardMember())
+        if self.action in ['create', "partial_update"]:
+            permissions_list.append(IsBoardMemberForTask())
         elif self.action == "destroy":
             permissions_list.append(IsBoardOwnerOrTaskCreator())
 
@@ -51,7 +42,8 @@ class AssignedTaskListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return Task.objects.filter(assignee=user)
+        tasks = Task.objects.filter(assignee=user)
+        return tasks
 
 
 class ReviewingTaskListView(generics.ListAPIView):
@@ -76,25 +68,20 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         permissions_list = super().get_permissions()
         if self.action in ['list', 'create']:
-            permissions_list.append(IsBoardMember())
+            permissions_list.append(IsBoardMemberForComment())
         if self.action == "destroy":
             permissions_list.append(IsCommentCreator())
         return permissions_list
-
-
-class CommentListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = CommentSerializer
-
-    def get_queryset(self):
-        task_id = self.kwargs['pk']
-        return Comment.objects.filter(task_id=task_id)
-
-
-class CommentDeleteView(generics.DestroyAPIView):
-    permission_classes = [IsAuthenticated, IsCommentCreator]
-    serializer_class = CommentSerializer
-
-    def get_queryset(self):
-        task_id = self.kwargs['pk-comment']
-        return Comment.objects.filter(task_id=task_id)
+    
+    def get_task(self):
+        task_id = self.kwargs.get('task_pk')
+        if not task_id:
+            return None
+        try:
+            return Task.objects.get(pk=task_id)
+        except Task.DoesNotExist:
+            return None
+        
+    def perform_create(self, serializer):
+        task = self.get_task()
+        serializer.save(task=task, author=self.request.user)
