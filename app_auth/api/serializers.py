@@ -32,14 +32,13 @@ class UserInfoSerializer(serializers.ModelSerializer):
         - Follows the permissions set by the calling view (e.g., IsAuthenticated).
 
     Details:
-        - Returns fields 'user_id', 'email', 'fullname'.
+        - Returns fields 'id', 'email', 'fullname'.
     """
     fullname = serializers.SerializerMethodField()
-    user_id = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['fullname', 'email', 'user_id']
+        fields = ['id', 'email', 'fullname']
 
     def get_fullname(self, obj):
         """
@@ -47,15 +46,12 @@ class UserInfoSerializer(serializers.ModelSerializer):
 
         Args: obj (User): User instance.
 
-        Returns: str: Full name in "first_name last_name" format, trimmed.
+        Returns: 
+            - The 'fullname' field is implemented via the 'get_fullname' method.
+            - Output format: JSON with fields 'id', 'email', 'fullname'.
+            - No write operations are implemented in this serializer.
         """
         return f"{obj.first_name} {obj.last_name}".strip()
-    
-    def get_user_id(self, obj):
-        """
-        Returns the user's ID (as user_id).
-        """
-        return obj.id
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
