@@ -49,8 +49,7 @@ class IsBoardMemberForComment(BasePermission):
     def has_permission(self, request, view):
         task = view.get_task()
         if not task:
-            self.message = "Task must be specified"
-            return False
+            raise NotFound({"task": "Task does not exist."})
         board = task.board
         return request.user in board.members.all()
 
