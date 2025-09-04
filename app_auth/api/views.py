@@ -72,7 +72,7 @@ class LoginView(APIView):
         try:
             user_obj = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = authenticate(request, username=user_obj.username, password=password)
         if user is not None:
