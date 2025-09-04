@@ -10,6 +10,7 @@ Permissions:
 
 # 2. Third-party
 from rest_framework.permissions import SAFE_METHODS, BasePermission
+from rest_framework.exceptions import NotFound, ValidationError
 
 # 3. Local imports
 from app_board.models import Board
@@ -27,13 +28,11 @@ class IsBoardMemberForTask(BasePermission):
         if view.action == 'create':
             board_id = request.data.get("board")
             if not board_id:
-                self.message = "Board must be specified."
-                return False
+                raise ValidationError({"board": "Board must be specified."})
             try:
                 board = Board.objects.get(pk=board_id)
             except Board.DoesNotExist:
-                self.message = "Board does not exist."
-                return False
+                raise NotFound(detail="Board does not exist.")
             return request.user in board.members.all()
         return True
     
