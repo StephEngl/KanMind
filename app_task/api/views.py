@@ -35,7 +35,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['post', 'partial_update', 'delete']
+    http_method_names = ['post', 'patch', 'delete']
 
     def get_permissions(self):
         """
