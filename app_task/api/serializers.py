@@ -96,6 +96,29 @@ class TaskSerializer(serializers.ModelSerializer):
 
         return attrs
 
+class TaskPartialUpdateSerializer(serializers.ModelSerializer):
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        source='assignee',
+        queryset=User.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    reviewer_id = serializers.PrimaryKeyRelatedField(
+        source='reviewer',
+        queryset=User.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    assignee = UserInfoSerializer(read_only=True)
+    reviewer = UserInfoSerializer(read_only=True)
+
+    class Meta:
+        model = Task
+        fields = ['id', 'title', 'description', 'status', 'priority',
+                'assignee_id', 'reviewer_id', 'assignee', 'reviewer', 'due_date']
+
 
 class BoardTaskSerializer(TaskSerializer):
     """

@@ -11,16 +11,15 @@ Permissions:
 - Uses custom permissions for board membership, task ownership, and comment authorship.
 """
 
-# 1. Standard library
-from app_task.models import Task, Comment
-
-# 2. Third-party
+# 1. Third-party
 from rest_framework import generics, viewsets
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-# 3. Local imports
+# 2. Local imports
+from app_task.models import Task, Comment
 from .permissions import IsBoardMemberForTask, IsBoardOwnerOrTaskCreator, IsCommentCreator, IsBoardMemberForComment
-from .serializers import TaskSerializer, CommentSerializer
+from .serializers import TaskSerializer, TaskPartialUpdateSerializer, CommentSerializer
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -56,6 +55,16 @@ class TaskViewSet(viewsets.ModelViewSet):
         Sets the current user as the creator of a new task.
         """
         serializer.save(created_by=self.request.user)
+
+    def partial_update(self, request, *args, **kwargs):
+        partial = True
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        response_serializer = TaskPartialUpdateSerializer(instance)
+        return Response(response_serializer.data)
 
 
 class AssignedTaskListView(generics.ListAPIView):
