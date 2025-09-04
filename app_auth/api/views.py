@@ -80,7 +80,9 @@ class LoginView(APIView):
             serializer = UserInfoSerializer(user)
             data = {
                 "token": token.key,
-                **serializer.data
+                "fullname": serializer.data['fullname'],
+                "email": serializer.data['email'],
+                "user_id": serializer.data['id']
             }
             return Response(data, status=status.HTTP_200_OK)
         else:
@@ -125,8 +127,10 @@ class RegistrationView(APIView):
             user_serializer = UserInfoSerializer(saved_account)
             data = {
                 "token": token.key,
-                **user_serializer.data
+                "fullname": user_serializer.data['fullname'],
+                "email": user_serializer.data['email'],
+                "user_id": user_serializer.data['id']
             }
+            return Response(data, status=status.HTTP_201_CREATED)
         else:
-            data = serializer.errors
-        return Response(data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
