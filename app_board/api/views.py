@@ -20,48 +20,20 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound
 
 # 3. Local imports
-# Board model representing the core entity
 from app_board.models import Board
-# Custom permission classes for access control
 from .permissions import IsBoardMemberOrOwner, IsBoardOwner, IsMemberOrOwnerOfAnyBoard
-# Serializers for Board data validation and representation
 from .serializers import BoardSerializer, BoardDetailSerializer, BoardUpdateRequestSerializer, BoardUpdateResponseSerializer
 
 
 class BoardViewSet(viewsets.ModelViewSet):
     """
-    Manage boards including listing, creation, retrieval, partial update, and deletion.
+    ViewSet for boards: list, create, retrieve, update, and delete.
 
-    Permissions:
-        - create: authenticated users.
-        - list: authenticated users who are members/owners of any board.
-        - retrieve, partial_update: authenticated users who are members/owners of specific board.
-        - destroy: only the owner can delete a board.
-
-    HTTP methods allowed:
-        - GET (list and retrieve)
-        - POST (create)
-        - PATCH (partial_update)
-        - DELETE (destroy)
-
-    GET:
-        Returns a list or detail of boards accessible to the user.
-
-    POST:
-        Creates a new board with the request user as owner.
-        Accepts members as list of user IDs.
-
-    PATCH:
-        Partially updates board title and members.
-        Input serializer expects member IDs.
-        Response serializer returns nested owner and members details.
-
-    DELETE:
-        Deletes a board, only allowed for owners.
-
-    Notes:
-        - The `get_object` method fetches boards differently depending on action to support proper permission checks.
-        - Members are explicitly set on create and update to ensure integrity.
+    - create: Authenticated users only.
+    - list: Authenticated users (member/owner of any board).
+    - retrieve/partial_update: Member or owner of board.
+    - destroy: Owner only.
+    - Handles integrity on member setting (create/update).
     """
 
     permission_classes = [IsAuthenticated]
@@ -78,13 +50,10 @@ class BoardViewSet(viewsets.ModelViewSet):
     
     def get_object(self):
         """
-        Retrieve a Board instance applying queryset restrictions and permission checks.
+        Gets a board for detail/update/delete actions with full permission checking.
 
-        For 'destroy', fetch from all boards to enable correct 403 errors.
-        Raises 404 if not found.
-
-        Returns:
-            Board instance.
+        Raises:
+            NotFound: if board does not exist.
         """
         if self.action in ['retrieve', 'partial_update','destroy']:
             queryset = Board.objects.all()
@@ -102,11 +71,7 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """
-        Return serializer class depending on action.
-
-        Returns:
-            BoardDetailSerializer for retrieve, update actions.
-            BoardSerializer otherwise.
+        Returns serializer class based on action.
         """
         if self.action in ['retrieve', 'update', 'partial_update']:
             return BoardDetailSerializer
@@ -114,10 +79,7 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Create and save a new Board with owner and members.
-
-        Args:
-            serializer: Serializer with validated data.
+        Saves a new board, assigning the owner and setting members.
         """
         board = serializer.save(owner=self.request.user)
         members = serializer.validated_data.get("members", [])
@@ -126,18 +88,7 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         """
-        Handle PATCH requests to partially update the board.
-
-        Uses separate serializers for input validation and output representation.
-
-        Input:
-            members as list of user IDs.
-            
-        Output:
-            Nested owner and members details.
-
-        Returns:
-            Response with updated board data.
+        Partially updates board members/title, returns nested response.
         """
         instance = self.get_object()
         req_serializer = BoardUpdateRequestSerializer(instance, data=request.data, partial=True)
@@ -154,10 +105,7 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Return appropriate permissions based on current action.
-
-        Returns:
-            List of permission instances.
+        Appends action-specific board permission classes.
         """
         permissions_list = super().get_permissions()
         if self.action == "list":
@@ -172,29 +120,19 @@ class BoardViewSet(viewsets.ModelViewSet):
 
 class EmailCheckView(APIView):
     """
-    Validate existence and format of a user email.
+    APIView for validating email existence and format.
 
-    Permissions:
-        - Authenticated users only.
-
-    GET:
-        Query param 'email' is required.
-        Returns user ID, email, and fullname if user exists.
-        Returns 400 if no email provided or invalid format.
-        Returns 404 if email does not exist.
+    - GET with 'email' param required.
+    - Returns 200 with user info if found.
+    - Returns 400 on format/user missing.
+    - Returns 404 if email does not exist in system.
     """
 
     permission_classes = [IsAuthenticated]
 
     def validate_email(self, email):
         """
-        Validate the email format.
-
-        Args:
-            email (str): Email address to validate.
-
-        Returns:
-            bool or Response: True if valid, or HTTP 400 Response if invalid.
+        Validates email format, returns True or 400 Response.
         """
         try:
             validate_email(email)
@@ -204,13 +142,7 @@ class EmailCheckView(APIView):
 
     def get(self, request):
         """
-        Handle GET request to check if an email exists in the system.
-
-        Query params:
-            email (str): Email address.
-
-        Returns:
-            JSON with user info or error message.
+        Handles GET to check if email exists; returns minimal user info or error.
         """
         email = request.query_params.get('email')
         if not email:

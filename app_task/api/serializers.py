@@ -23,16 +23,11 @@ from app_task.models import Task, Comment
 
 class TaskSerializer(serializers.ModelSerializer):
     """
-    Serializer for task representation and validation.
+    Serializes Task objects with nested user info and board validation.
 
-    Handles:
-    - Writing assignee_id and reviewer_id as user PKs on create/update.
-    - Reading nested detailed info for assignee and reviewer in API responses.
-    - Read-only comments count.
-
-    Validates:
-    - That assignee and reviewer (if given) are members of the associated board.
-    - That a board must always be specified and exist.
+    - Write-only assignment and review user PKs.
+    - Read-only user details and comments count.
+    - Validates assignee/reviewer membership in board.
     """
 
     assignee_id = serializers.PrimaryKeyRelatedField(
@@ -97,6 +92,11 @@ class TaskSerializer(serializers.ModelSerializer):
         return attrs
 
 class TaskPartialUpdateSerializer(serializers.ModelSerializer):
+    """
+    Partial update serializer for Task objects.
+
+    Includes write-only assignment/review PKs and read-only user meta.
+    """
     assignee_id = serializers.PrimaryKeyRelatedField(
         source='assignee',
         queryset=User.objects.all(),
@@ -122,22 +122,9 @@ class TaskPartialUpdateSerializer(serializers.ModelSerializer):
 
 class BoardTaskSerializer(TaskSerializer):
     """
-    Serializer variant for Task model tailored for board-level views.
+    Compact serializer for Task model (board context).
 
-    Inherits all validation and field handling from TaskSerializer.
-
-    Fields:
-        - id: Task identifier.
-        - title: Title of the task.
-        - description: Detailed description.
-        - status: Current task status.
-        - priority: Task priority level.
-        - assignee_id: ID of the user assigned to the task (write-only).
-        - reviewer_id: ID of the user reviewing the task (write-only).
-        - assignee: Nested user info for assignee (read-only).
-        - reviewer: Nested user info for reviewer (read-only).
-        - due_date: Deadline date.
-        - comments_count: Number of comments associated with the task (read-only).
+    Inherits TaskSerializer and exposes streamlined fields.
     """
     class Meta(TaskSerializer.Meta):
         fields = [
@@ -149,18 +136,10 @@ class BoardTaskSerializer(TaskSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """
-    Serializer for Comment model instances.
+    Serializes Comment objects with author info.
 
-    Provides serialized fields for displaying comment metadata and content.
-
-    Fields:
-        - id: Unique identifier of the comment (read-only).
-        - created_at: Timestamp when the comment was created (read-only).
-        - author: Full name of the comment's author, dynamically constructed (read-only).
-        - content: The text content of the comment.
-
-    Methods:
-        - get_author(obj): Returns the full name of the author concatenated from first and last names.
+    - Constructs author full name.
+    - Exposes metadata and content.
     """
     author = serializers.SerializerMethodField()
 
@@ -170,4 +149,7 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'author']
 
     def get_author(self, obj):
+        """
+        Returns full name of the comment author.
+        """
         return f"{obj.author.first_name} {obj.author.last_name}".strip()

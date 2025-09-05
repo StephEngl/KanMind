@@ -10,33 +10,20 @@ Conventions:
 from django.contrib.auth.models import User
 
 # 2. Third-party
-# DRF serializer base classes
 from rest_framework import serializers
 
 # 3. Local imports
-# Serializer for user info reuse
 from app_auth.api.serializers import UserInfoSerializer
-# Serializer for task info reuse
 from app_task.api.serializers import BoardTaskSerializer
-# Board model definition
 from app_board.models import Board
 
 
 class BoardSerializer(serializers.ModelSerializer):
     """
-    Serializer for creating and listing boards with summary counts and write-only members list.
+    Serializes Board instances with aggregation and member management.
 
-    Fields:
-        - members (list[int], write-only): Primary keys of users to add as members.
-        - member_count (int, read-only): Number of board members.
-        - ticket_count (int, read-only): Number of tasks associated with the board.
-        - tasks_to_do_count (int, read-only): Count of tasks with 'to-do' status.
-        - tasks_high_prio_count (int, read-only): Count of tasks with 'high' priority.
-        - owner_id (int, read-only): ID of the board owner.
-
-    Notes:
-        - Members are passed as IDs when writing but not included in serialized output.
-        - Aggregated counts are computed dynamically.
+    - members: Write-only user ID list.
+    - Aggregates member/task counts, owner ID (read-only).
     """
     members = serializers.PrimaryKeyRelatedField(
         many=True,

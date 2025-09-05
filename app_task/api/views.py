@@ -24,12 +24,10 @@ from .serializers import TaskSerializer, TaskPartialUpdateSerializer, CommentSer
 
 class TaskViewSet(viewsets.ModelViewSet):
     """
-    Handles CRUD operations for the Task model.
+    ViewSet for Task CRUD operations.
 
-    Actions:
-    - create: Validate board membership and assign creator.
-    - partial_update: Permission checked for board membership.
-    - destroy: Restricted to board owner or task creator.
+    - create/partial_update: Requires board membership.
+    - destroy: Requires board owner or task creator.
     """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
@@ -38,9 +36,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Assigns permissions dynamically based on action:
-        - IsBoardMemberForTask for create and partial_update.
-        - IsBoardOwnerOrTaskCreator for destroy.
+        Returns action-specific permission instances.
         """
         permissions_list = super().get_permissions()
         if self.action in ['create', "partial_update"]:
@@ -52,11 +48,14 @@ class TaskViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """
-        Sets the current user as the creator of a new task.
+        Saves a task with the current user as creator.
         """
         serializer.save(created_by=self.request.user)
 
     def partial_update(self, request, *args, **kwargs):
+        """
+        Updates task partially, returns compact serializer representation.
+        """
         partial = True
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
