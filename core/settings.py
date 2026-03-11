@@ -25,8 +25,11 @@ SECRET_KEY = 'django-insecure-=a1x4#d1oj$kb+%dqxz341)e#&#_81d-6^1ryp-6wh(yd_o&e(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = [
+    '35.242.214.147',
+    'localhost',
+    '127.0.0.1',
+]
 
 # Application definition
 
@@ -56,12 +59,21 @@ MIDDLEWARE = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',]
-
-CORS_ALLOWED_ORIGINS = [
+    'https://stephanie-englberger.de',
+    'https://kanmind.stephanie-englberger.de',
     'http://127.0.0.1:5500',
     'http://localhost:5500',
+    'http://35.242.214.147',
+    'http://35.242.214.147:8000',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    'https://stephanie-englberger.de',
+    'https://kanmind.stephanie-englberger.de',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    'http://35.242.214.147',
+    'http://35.242.214.147:8000',
 ]
 
 ROOT_URLCONF = 'core.urls'
