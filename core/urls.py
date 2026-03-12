@@ -16,6 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf.urls.static import static
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from core import settings
 
 from app_board.api.views import EmailCheckView 
 
@@ -26,4 +29,6 @@ urlpatterns = [
     path('api/email-check/', EmailCheckView.as_view(), name='email-check'),
     path('api/tasks/', include('app_task.api.urls')),
     path('api-auth/', include('rest_framework.urls')),
-]   
+]   + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+urlpatterns += staticfiles_urlpatterns()
