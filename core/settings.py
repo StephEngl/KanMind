@@ -30,6 +30,7 @@ ALLOWED_HOSTS = [
     '35.242.214.147',
     'localhost',
     '127.0.0.1',
+    'api.kanmind.englberger.xyz',
 ]
 
 # Application definition
@@ -60,21 +61,15 @@ MIDDLEWARE = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://stephanie-englberger.de',
     'https://kanmind.stephanie-englberger.de',
     'http://127.0.0.1:5500',
     'http://localhost:5500',
-    'http://35.242.214.147',
-    'http://35.242.214.147:8000',
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'https://stephanie-englberger.de',
     'https://kanmind.stephanie-englberger.de',
     'http://127.0.0.1:5500',
     'http://localhost:5500',
-    'http://35.242.214.147',
-    'http://35.242.214.147:8000',
 ]
 
 ROOT_URLCONF = 'core.urls'
