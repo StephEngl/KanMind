@@ -14,3 +14,6 @@ infos.txt
 # __pycache__ und andere temporäre Dateien
 __pycache__/
 *.pyc
+
+# Logs
+logs/

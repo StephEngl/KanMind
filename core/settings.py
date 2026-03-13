@@ -151,18 +151,19 @@ REST_FRAMEWORK = {
     ],
 }
 
-LOGGING = {
-    'version': 1,
-    'handlers': {
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/django/error.log',
+if not DEBUG:
+    LOGGING = {
+        'version': 1,
+        'handlers': {
+            'file': {
+                'class': 'logging.FileHandler',
+                'filename': os.path.join(BASE_DIR, 'logs', 'error.log'),
+            },
         },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
+        'loggers': {
+            'django': {
+                'handlers': ['file'],
+                'level': 'ERROR',
+            },
         },
-    },
-}
+    }
