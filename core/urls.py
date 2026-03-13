@@ -27,7 +27,6 @@ urlpatterns = [
     path('api/boards/', include('app_board.api.urls')),
     path('api/email-check/', EmailCheckView.as_view(), name='email-check'),
     path('api/tasks/', include('app_task.api.urls')),
-    path('api-auth/', include('rest_framework.urls')),
 ]  
 
 if settings.DEBUG:

@@ -44,19 +44,26 @@ Follow these steps to set up and run the project locally.
     python manage.py createsuperuser
     ```
 
-6. **Run the development server**
+6. **Set up environment variables**
+   Copy the .env.template to .env and configure your settings:
+   ```bash
+   cp .env.template .env
+   ```
+   Update the variables in your .env file!
+
+7. **Run the development server**
     ```sh
     python manage.py runserver
     ```
 
-7. **If your frontend uses a guest user, create one in the admin panel:**
+8. **If your frontend uses a guest user, create one in the admin panel:**
     - Go to [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
     - Create a user with:
-        - Username: `Guest`
-        - First name: `Guest`
-        - Last name: `Guest`
-        - Email: `guest@kanmind.de`
-        - Password: `321kanMind987+`
+        - Username
+        - First name
+        - Last name
+        - Email
+        - Password
     > **Note:** Don't forget to add the Guest user information to your frontend configuration so it can authenticate as the guest user.
 
 ## 🔒 Security Information
